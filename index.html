@@ -1,63 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Expense Split App</title>
+<title>Trip Expense Splitter</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
-h2 { margin-top: 30px; }
-input, select, button { padding: 6px; margin: 4px 0; }
-button { cursor: pointer; }
-section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
-label { display: block; }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+body{font-family:Arial;padding:20px;max-width:900px;margin:auto}
+section{border:1px solid #ccc;padding:15px;margin-bottom:20px}
+input,select,button{padding:6px;margin:4px 0}
+.hidden{display:none}
+label{display:block}
+ul{padding-left:20px}
 </style>
 </head>
 
 <body>
 
-<h1>Expense Split App</h1>
+<h1>Trip Expense Splitter</h1>
 
+<!-- AUTH -->
+<section id="auth">
+<button id="loginBtn">Sign in with Google</button>
+</section>
+
+<section id="user" class="hidden">
+Logged in as <b id="userName"></b>
+<button id="logoutBtn">Sign out</button>
+</section>
+
+<div id="app" class="hidden">
+
+<!-- TRIPS -->
+<section>
+<h2>Trips</h2>
+<select id="tripSelect"></select><br>
+<input id="newTrip" placeholder="New trip name">
+<button id="addTripBtn">Create Trip</button>
+<button id="deleteTripBtn">Delete Trip</button>
+</section>
+
+<!-- PEOPLE -->
 <section>
 <h2>People</h2>
-<input id="newPerson" placeholder="Add name">
+<input id="newPerson" placeholder="Name">
 <button id="addPersonBtn">Add</button>
 <ul id="peopleList"></ul>
 </section>
 
+<!-- CURRENCY -->
 <section>
-<h2>Currency Settings</h2>
-Base currency: <b>GBP (£)</b><br><br>
-<label>USD → GBP <input id="rateUSD" type="number" step="0.01"></label>
-<label>EUR → GBP <input id="rateEUR" type="number" step="0.01"></label>
-<button id="saveRatesBtn">Save Rates</button>
+<h2>Currencies (to GBP)</h2>
+<input id="curCode" placeholder="USD" maxlength="3">
+<input id="curRate" type="number" step="0.0001" placeholder="0.79">
+<button id="addCurrencyBtn">Add / Update</button>
+<ul id="currencyList"></ul>
 </section>
 
+<!-- EXPENSE -->
 <section>
 <h2>Add Expense</h2>
 <input id="desc" placeholder="Description"><br>
-<input id="amount" type="number" step="0.01" placeholder="Amount"><br>
-
-<select id="currency">
-  <option value="GBP">GBP</option>
-  <option value="USD">USD</option>
-  <option value="EUR">EUR</option>
-</select><br>
-
-Paid by:
-<select id="paidBy"></select>
-
+<input id="amount" type="number" step="0.01"><br>
+<select id="currency"></select><br>
+Paid by <select id="paidBy"></select>
 <h4>Participants</h4>
 <div id="participants"></div>
-
 <button id="addExpenseBtn">Add Expense</button>
 </section>
 
 <section>
-<h2>Add Payment</h2>
+<h2>Expense History</h2>
+<ul id="expenseHistory"></ul>
+</section>
+
+<!-- PAYMENT -->
+<section>
+<h2>Add Payment (GBP)</h2>
 <select id="payFrom"></select> paid
 <select id="payTo"></select>
 <input id="payAmount" type="number" step="0.01">
@@ -65,166 +83,9 @@ Paid by:
 </section>
 
 <section>
-<h2>Balances (GBP)</h2>
-<ul id="balances"></ul>
+<h2>Payment History</h2>
+<ul id="paymentHistory"></ul>
 </section>
 
 <section>
-<h2>Settlement</h2>
-<ul id="settlement"></ul>
-</section>
-
-<script>
-let people = JSON.parse(localStorage.getItem("people")) || [];
-let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
-let payments = JSON.parse(localStorage.getItem("payments")) || [];
-let rates = JSON.parse(localStorage.getItem("rates")) || { USD: 0.8, EUR: 0.9 };
-
-const el = id => document.getElementById(id);
-
-function saveAll() {
-  localStorage.setItem("people", JSON.stringify(people));
-  localStorage.setItem("expenses", JSON.stringify(expenses));
-  localStorage.setItem("payments", JSON.stringify(payments));
-  localStorage.setItem("rates", JSON.stringify(rates));
-  renderAll();
-}
-
-function addPerson() {
-  const name = el("newPerson").value.trim();
-  if (!name || people.includes(name)) return;
-  people.push(name);
-  el("newPerson").value = "";
-  saveAll();
-}
-
-function removePerson(name) {
-  people = people.filter(p => p !== name);
-  saveAll();
-}
-
-function saveRates() {
-  rates.USD = parseFloat(el("rateUSD").value) || 0;
-  rates.EUR = parseFloat(el("rateEUR").value) || 0;
-  saveAll();
-}
-
-function convertToGBP(amount, currency) {
-  if (currency === "GBP") return amount;
-  return amount * (rates[currency] || 1);
-}
-
-function addExpense() {
-  const selected = [...el("participants").querySelectorAll("input:checked")].map(x => x.value);
-  if (!selected.length) return;
-
-  expenses.push({
-    desc: el("desc").value,
-    amount: convertToGBP(+el("amount").value, el("currency").value),
-    paidBy: el("paidBy").value,
-    participants: selected
-  });
-
-  el("desc").value = "";
-  el("amount").value = "";
-  saveAll();
-}
-
-function addPayment() {
-  payments.push({
-    from: el("payFrom").value,
-    to: el("payTo").value,
-    amount: +el("payAmount").value
-  });
-  el("payAmount").value = "";
-  saveAll();
-}
-
-function calculateBalances() {
-  let bal = {};
-  people.forEach(p => bal[p] = 0);
-
-  expenses.forEach(e => {
-    const share = e.amount / e.participants.length;
-    e.participants.forEach(p => bal[p] -= share);
-    bal[e.paidBy] += e.amount;
-  });
-
-  payments.forEach(p => {
-    bal[p.from] += p.amount;
-    bal[p.to] -= p.amount;
-  });
-
-  return bal;
-}
-
-function renderPeople() {
-  el("peopleList").innerHTML = "";
-  el("paidBy").innerHTML = "";
-  el("payFrom").innerHTML = "";
-  el("payTo").innerHTML = "";
-  el("participants").innerHTML = "";
-
-  people.forEach(p => {
-    const li = document.createElement("li");
-    li.innerHTML = `${p} <button onclick="removePerson('${p}')">❌</button>`;
-    el("peopleList").appendChild(li);
-
-    ["paidBy","payFrom","payTo"].forEach(id => {
-      el(id).add(new Option(p, p));
-    });
-
-    el("participants").innerHTML +=
-      `<label><input type="checkbox" value="${p}" checked> ${p}</label>`;
-  });
-}
-
-function renderBalances() {
-  el("balances").innerHTML = "";
-  const b = calculateBalances();
-  for (let p in b) {
-    el("balances").innerHTML += `<li>${p}: £${b[p].toFixed(2)}</li>`;
-  }
-}
-
-function renderSettlement() {
-  el("settlement").innerHTML = "";
-  const b = calculateBalances();
-  let debtors = [], creditors = [];
-
-  for (let p in b) {
-    if (b[p] < 0) debtors.push([p, -b[p]]);
-    if (b[p] > 0) creditors.push([p, b[p]]);
-  }
-
-  debtors.forEach(d => {
-    creditors.forEach(c => {
-      if (d[1] > 0 && c[1] > 0) {
-        const amt = Math.min(d[1], c[1]);
-        el("settlement").innerHTML +=
-          `<li>${d[0]} owes ${c[0]} £${amt.toFixed(2)}</li>`;
-        d[1] -= amt;
-        c[1] -= amt;
-      }
-    });
-  });
-}
-
-function renderAll() {
-  renderPeople();
-  renderBalances();
-  renderSettlement();
-  el("rateUSD").value = rates.USD;
-  el("rateEUR").value = rates.EUR;
-}
-
-el("addPersonBtn").onclick = addPerson;
-el("saveRatesBtn").onclick = saveRates;
-el("addExpenseBtn").onclick = addExpense;
-el("addPaymentBtn").onclick = addPayment;
-
-renderAll();
-</script>
-
-</body>
-</html>
+<h2>Balances (GBP)</h2>
