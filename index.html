@@ -1,307 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Kelyje</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>Kelyje</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<style>
-:root{
-  --bg:#f4f6fb;
-  --card:#fff;
-  --primary:#4f46e5;
-  --danger:#ef4444;
-  --text:#111827;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-h1{text-align:center;margin:20px 0}
-h2{margin:0 0 10px;font-size:1.1rem}
-.container{max-width:900px;margin:auto;padding:16px}
-.card{
-  background:var(--card);
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:16px;
-  box-shadow:0 10px 25px rgba(0,0,0,.05);
-}
-input,select,button{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  font-size:1rem;
-  margin-bottom:8px;
-}
-button{
-  background:var(--primary);
-  color:#fff;
-  border:none;
-  cursor:pointer;
-}
-button.secondary{background:#e5e7eb;color:var(--text)}
-button.danger{background:var(--danger)}
-.flex{display:flex;gap:8px;flex-wrap:wrap}
-label{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-ul{padding-left:18px}
-li{margin-bottom:6px}
-.hidden{display:none}
-small{color:var(--muted)}
-</style>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    /* 🔥 YOUR FIREBASE CONFIG */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBaXXlkHiYEd850qx8pwCutBR_Dvq4Oq54",
+      authDomain: "kelyje.firebaseapp.com",
+      projectId: "kelyje",
+      storageBucket: "kelyje.firebasestorage.app",
+      messagingSenderId: "193249039520",
+      appId: "1:193249039520:web:f05bbc1386467fbe6ea5c5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    /* ELEMENTS */
+    const login = document.getElementById("login");
+    const appUI = document.getElementById("app");
+    const userEmail = document.getElementById("userEmail");
+
+    /* LOGIN */
+    window.loginGoogle = async () => {
+      await signInWithPopup(auth, provider);
+    };
+
+    window.logout = async () => {
+      await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        login.classList.add("hidden");
+        appUI.classList.remove("hidden");
+        userEmail.textContent = user.email;
+      } else {
+        login.classList.remove("hidden");
+        appUI.classList.add("hidden");
+      }
+    });
+  </script>
 </head>
 
-<body>
+<body class="bg-gray-100">
 
-<h1>Kelyje</h1>
-<p style="text-align:center;color:#6b7280;margin-top:-10px">
-Split travel expenses effortlessly
-</p>
-
-<div class="container">
-
-<!-- AUTH -->
-<div id="auth" class="card">
-  <button id="loginBtn">Sign in with Google</button>
-</div>
-
-<div id="user" class="card hidden">
-  Logged in as <b id="userName"></b><br>
-  <button id="logoutBtn" class="secondary">Sign out</button>
-</div>
-
-<div id="app" class="hidden">
-
-<!-- TRIPS -->
-<div class="card">
-  <h2>Trips</h2>
-  <select id="tripSelect"></select>
-  <input id="newTrip" placeholder="New trip name">
-  <div class="flex">
-    <button id="addTripBtn">Create Trip</button>
-    <button id="deleteTripBtn" class="danger">Delete Trip</button>
+<!-- LOGIN -->
+<div id="login" class="h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-xl shadow w-80 text-center">
+    <h1 class="text-3xl font-bold mb-4">Kelyje</h1>
+    <p class="text-gray-500 mb-6">Split travel expenses</p>
+    <button onclick="loginGoogle()" class="w-full bg-black text-white py-3 rounded-xl">
+      Sign in with Google
+    </button>
   </div>
 </div>
 
-<!-- PEOPLE -->
-<div class="card">
-  <h2>People</h2>
-  <input id="newPerson" placeholder="Name">
-  <button id="addPersonBtn">Add</button>
-  <ul id="peopleList"></ul>
+<!-- APP -->
+<div id="app" class="hidden max-w-4xl mx-auto p-4">
+
+  <!-- HEADER -->
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold">Kelyje</h2>
+    <div>
+      <span id="userEmail" class="text-sm text-gray-600"></span>
+      <button onclick="logout()" class="ml-3 text-sm text-red-500">Logout</button>
+    </div>
+  </div>
+
+  <!-- TRIP -->
+  <div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h3 class="font-bold mb-2">Trip name</h3>
+    <input id="tripName" class="w-full border p-2 rounded" placeholder="e.g. Italy 2026">
+  </div>
+
+  <!-- PEOPLE -->
+  <div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h3 class="font-bold mb-2">People</h3>
+    <input id="peopleInput" class="w-full border p-2 rounded" placeholder="Alice, Bob, Charlie">
+  </div>
+
+  <!-- CURRENCY -->
+  <div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h3 class="font-bold mb-2">Currency</h3>
+    <div class="flex gap-2">
+      <input id="currencyCode" value="GBP" class="border p-2 w-24 rounded">
+      <input id="exchangeRate" value="1" class="border p-2 rounded" placeholder="Rate to base">
+    </div>
+  </div>
+
+  <!-- EXPENSE -->
+  <div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h3 class="font-bold mb-2">Add expense</h3>
+    <input id="desc" class="border p-2 rounded w-full mb-2" placeholder="Description">
+    <input id="amount" type="number" class="border p-2 rounded w-full mb-2" placeholder="Amount">
+    <button onclick="addExpense()" class="bg-black text-white px-4 py-2 rounded">Add</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="bg-white p-4 rounded-xl shadow">
+    <h3 class="font-bold mb-2">Expenses</h3>
+    <ul id="expenses" class="text-sm"></ul>
+  </div>
 </div>
 
-<!-- CURRENCIES -->
-<div class="card">
-  <h2>Currencies → GBP</h2>
-  <input id="curCode" placeholder="USD" maxlength="3">
-  <input id="curRate" type="number" step="0.0001" placeholder="0.79">
-  <button id="addCurrencyBtn">Add / Update</button>
-  <ul id="currencyList"></ul>
-</div>
+<script>
+  let expenses = [];
 
-<!-- EXPENSE -->
-<div class="card">
-  <h2>Add Expense</h2>
-  <input id="desc" placeholder="Description">
-  <input id="amount" type="number" step="0.01" placeholder="Amount">
-  <select id="currency"></select>
-  Paid by
-  <select id="paidBy"></select>
-  <h3>Participants</h3>
-  <div id="participants"></div>
-  <button id="addExpenseBtn">Add Expense</button>
-</div>
+  window.addExpense = () => {
+    const desc = document.getElementById("desc").value;
+    const amount = parseFloat(document.getElementById("amount").value);
+    if (!desc || !amount) return;
 
-<!-- PAYMENT -->
-<div class="card">
-  <h2>Add Payment (GBP)</h2>
-  <select id="payFrom"></select>
-  <select id="payTo"></select>
-  <input id="payAmount" type="number" step="0.01" placeholder="Amount">
-  <button id="addPaymentBtn">Add Payment</button>
-</div>
+    expenses.push({ desc, amount });
+    render();
+  };
 
-<!-- BALANCES -->
-<div class="card">
-  <h2>Balances (GBP)</h2>
-  <ul id="balances"></ul>
-</div>
-
-<!-- SETTLEMENT -->
-<div class="card">
-  <h2>Settlement</h2>
-  <ul id="settlement"></ul>
-</div>
-
-</div>
-</div>
-
-<!-- FIREBASE + APP LOGIC -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBaXXlkHiYEd850qx8pwCutBR_Dvq4Oq54",
-  authDomain: "kelyje.firebaseapp.com",
-  projectId: "kelyje",
-  storageBucket: "kelyje.firebasestorage.app",
-  messagingSenderId: "193249039520",
-  appId: "1:193249039520:web:f05bbc1386467fbe6ea5c5"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-const $ = id => document.getElementById(id);
-
-/* AUTH */
-loginBtn.onclick = () => signInWithPopup(auth, provider);
-logoutBtn.onclick = () => signOut(auth);
-
-onAuthStateChanged(auth,user=>{
-  auth.classList.toggle("hidden",!!user);
-  appDiv.classList.toggle("hidden",!user);
-  user.classList.toggle("hidden",!user);
-  if(user) userName.textContent=user.displayName;
-});
-
-/* STATE */
-let trips = JSON.parse(localStorage.getItem("trips"))||{};
-let currentTrip = localStorage.getItem("currentTrip");
-
-/* HELPERS */
-function ensureTrip(n){
-  trips[n] ||= {people:[],expenses:[],payments:[],currencies:{GBP:1}};
-}
-function save(){
-  localStorage.setItem("trips",JSON.stringify(trips));
-  localStorage.setItem("currentTrip",currentTrip);
-  render();
-}
-function t(){return trips[currentTrip];}
-
-/* TRIPS */
-addTripBtn.onclick=()=>{
-  if(!newTrip.value.trim())return;
-  ensureTrip(newTrip.value.trim());
-  currentTrip=newTrip.value.trim();
-  newTrip.value="";
-  save();
-};
-deleteTripBtn.onclick=()=>{
-  if(!currentTrip||!confirm("Delete this trip?"))return;
-  delete trips[currentTrip];
-  currentTrip=Object.keys(trips)[0]||null;
-  save();
-};
-tripSelect.onchange=e=>{currentTrip=e.target.value;save();};
-
-/* PEOPLE */
-addPersonBtn.onclick=()=>{
-  const n=newPerson.value.trim();
-  if(!n||t().people.includes(n))return;
-  t().people.push(n);
-  newPerson.value="";
-  save();
-};
-
-/* CURRENCY */
-addCurrencyBtn.onclick=()=>{
-  const c=curCode.value.toUpperCase();
-  const r=+curRate.value;
-  if(c.length!==3||!r)return;
-  t().currencies[c]=r;
-  curCode.value=curRate.value="";
-  save();
-};
-
-/* EXPENSE */
-addExpenseBtn.onclick=()=>{
-  const parts=[...participants.querySelectorAll("input:checked")].map(x=>x.value);
-  if(!parts.length)return;
-  t().expenses.push({
-    amount:+amount.value*(t().currencies[currency.value]||1),
-    paidBy:paidBy.value,
-    participants:parts
-  });
-  amount.value=desc.value="";
-  save();
-};
-
-/* PAYMENT */
-addPaymentBtn.onclick=()=>{
-  t().payments.push({
-    from:payFrom.value,
-    to:payTo.value,
-    amount:+payAmount.value
-  });
-  payAmount.value="";
-  save();
-};
-
-/* BALANCES */
-function balances(){
-  let b={}; t().people.forEach(p=>b[p]=0);
-  t().expenses.forEach(e=>{
-    let s=e.amount/e.participants.length;
-    e.participants.forEach(p=>b[p]-=s);
-    b[e.paidBy]+=e.amount;
-  });
-  t().payments.forEach(p=>{
-    b[p.from]+=p.amount;
-    b[p.to]-=p.amount;
-  });
-  return b;
-}
-
-/* RENDER */
-function render(){
-  tripSelect.innerHTML="";
-  Object.keys(trips).forEach(n=>tripSelect.add(new Option(n,n)));
-  if(currentTrip)tripSelect.value=currentTrip;
-  if(!currentTrip)return;
-
-  peopleList.innerHTML=participants.innerHTML="";
-  paidBy.innerHTML=payFrom.innerHTML=payTo.innerHTML="";
-  currency.innerHTML=currencyList.innerHTML="";
-
-  Object.entries(t().currencies).forEach(([c,r])=>{
-    currency.add(new Option(c,c));
-    currencyList.innerHTML+=`<li>${c} → ${r}</li>`;
-  });
-
-  t().people.forEach(p=>{
-    peopleList.innerHTML+=`<li>${p}</li>`;
-    [paidBy,payFrom,payTo].forEach(s=>s.add(new Option(p,p)));
-    participants.innerHTML+=`<label><input type="checkbox" value="${p}" checked> ${p}</label>`;
-  });
-
-  const b=balances();
-  balancesEl.innerHTML="";
-  Object.entries(b).forEach(([p,v])=>balancesEl.innerHTML+=`<li>${p}: £${v.toFixed(2)}</li>`);
-
-  settlement.innerHTML="";
-  let d=[],c=[];
-  Object.entries(b).forEach(([p,v])=>v<0?d.push([p,-v]):v>0&&c.push([p,v]));
-  d.forEach(x=>c.forEach(y=>{
-    if(x[1]&&y[1]){
-      let m=Math.min(x[1],y[1]);
-      settlement.innerHTML+=`<li>${x[0]} owes ${y[0]} £${m.toFixed(2)}</li>`;
-      x[1]-=m;y[1]-=m;
-    }
-  }));
-}
-
-render();
+  function render() {
+    const list = document.getElementById("expenses");
+    list.innerHTML = "";
+    expenses.forEach(e => {
+      const li = document.createElement("li");
+      li.textContent = `${e.desc} – £${e.amount.toFixed(2)}`;
+      list.appendChild(li);
+    });
+  }
 </script>
 
 </body>
