@@ -1,10 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Test</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expenses</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <!-- Google auth -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    body { font-family: Arial; max-width: 700px; margin: auto; padding: 16px; }
+    input, select, button { margin: 4px 0; width: 100%; padding: 8px; }
+    button { background: #2563eb; color: white; border: none; }
+    .box { border: 1px solid #ddd; padding: 12px; margin-top: 12px; }
+  </style>
 </head>
 <body>
-  <h1>It works 🎉</h1>
-  <p>If you see this, HTML is working.</p>
+
+<h2>Expense Tracker</h2>
+
+<button id="login">Sign in with Google</button>
+<div id="user"></div>
+
+<div class="box">
+  <h3>Add Expense</h3>
+  <input id="desc" placeholder="Description">
+  <input id="amount" type="number" placeholder="Amount">
+  <select id="paidBy"></select>
+  <button onclick="addExpense()">Add</button>
+</div>
+
+<div class="box">
+  <h3>Expenses</h3>
+  <ul id="expenses"></ul>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBaXXlkHiYEd850qx8pwCutBR_Dvq4Oq54",
+    authDomain: "kelyje.firebaseapp.com",
+    projectId: "kelyje"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const people = ["You", "Friend"];
+  const paidBySelect = document.getElementById("paidBy");
+  people.forEach(p => paidBySelect.innerHTML += `<option>${p}</option>`);
+
+  document.getElementById("login").onclick = () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider);
+  };
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById("user").innerText = "Signed in as " + user.email;
+      loadExpenses();
+    }
+  });
+
+  function addExpense() {
+    const expense = {
+      desc: desc.value,
+      amount: Number(amount.value),
+      paidBy: paidBy.value
+    };
+    db.collection("expenses").add(expense);
+  }
+
+  function loadExpenses() {
+    db.collection("expenses").onSnapshot(snap => {
+      expenses.innerHTML = "";
+      snap.forEach(doc => {
+        const e = doc.data();
+        expenses.innerHTML += `<li>${e.paidBy} paid £${e.amount} for ${e.desc}</li>`;
+      });
+    });
+  }
+</script>
+
 </body>
 </html>
