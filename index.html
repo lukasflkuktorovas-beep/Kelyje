@@ -1,91 +1,204 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Expenses</title>
+<meta charset="UTF-8">
+<title>Expense Split App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-  <!-- Google auth -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <style>
-    body { font-family: Arial; max-width: 700px; margin: auto; padding: 16px; }
-    input, select, button { margin: 4px 0; width: 100%; padding: 8px; }
-    button { background: #2563eb; color: white; border: none; }
-    .box { border: 1px solid #ddd; padding: 12px; margin-top: 12px; }
-  </style>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+h2 { margin-top: 30px; }
+input, select, button { padding: 6px; margin: 4px 0; }
+button { cursor: pointer; }
+section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+label { display: block; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+</style>
 </head>
+
 <body>
 
-<h2>Expense Tracker</h2>
+<h1>Expense Split App</h1>
 
-<button id="login">Sign in with Google</button>
-<div id="user"></div>
+<!-- PEOPLE -->
+<section>
+<h2>People</h2>
+<input id="newPerson" placeholder="Add name">
+<button onclick="addPerson()">Add</button>
+<ul id="peopleList"></ul>
+</section>
 
-<div class="box">
-  <h3>Add Expense</h3>
-  <input id="desc" placeholder="Description">
-  <input id="amount" type="number" placeholder="Amount">
-  <select id="paidBy"></select>
-  <button onclick="addExpense()">Add</button>
-</div>
+<!-- SETTINGS -->
+<section>
+<h2>Currency Settings</h2>
+Base currency: <b>GBP (£)</b><br><br>
+<label>USD → GBP
+<input id="rateUSD" type="number" step="0.01"></label>
+<label>EUR → GBP
+<input id="rateEUR" type="number" step="0.01"></label>
+<button onclick="saveRates()">Save Rates</button>
+</section>
 
-<div class="box">
-  <h3>Expenses</h3>
-  <ul id="expenses"></ul>
-</div>
+<!-- EXPENSES -->
+<section>
+<h2>Add Expense</h2>
+<input id="desc" placeholder="Description"><br>
+<input id="amount" type="number" step="0.01" placeholder="Amount"><br>
+
+<select id="currency">
+  <option value="GBP">GBP</option>
+  <option value="USD">USD</option>
+  <option value="EUR">EUR</option>
+</select><br>
+
+Paid by:
+<select id="paidBy"></select>
+
+<h4>Participants</h4>
+<div id="participants"></div>
+
+<button onclick="addExpense()">Add Expense</button>
+</section>
+
+<!-- PAYMENTS -->
+<section>
+<h2>Add Payment</h2>
+<select id="payFrom"></select> paid
+<select id="payTo"></select>
+<input id="payAmount" type="number" step="0.01">
+<button onclick="addPayment()">Add Payment</button>
+</section>
+
+<!-- BALANCES -->
+<section>
+<h2>Balances (GBP)</h2>
+<ul id="balances"></ul>
+</section>
+
+<!-- SETTLEMENT -->
+<section>
+<h2>Settlement</h2>
+<ul id="settlement"></ul>
+</section>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBaXXlkHiYEd850qx8pwCutBR_Dvq4Oq54",
-    authDomain: "kelyje.firebaseapp.com",
-    projectId: "kelyje"
-  };
+let people = JSON.parse(localStorage.getItem("people")) || [];
+let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+let payments = JSON.parse(localStorage.getItem("payments")) || [];
+let rates = JSON.parse(localStorage.getItem("rates")) || { USD: 0.8, EUR: 0.9 };
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+function saveAll() {
+  localStorage.setItem("people", JSON.stringify(people));
+  localStorage.setItem("expenses", JSON.stringify(expenses));
+  localStorage.setItem("payments", JSON.stringify(payments));
+  localStorage.setItem("rates", JSON.stringify(rates));
+  renderAll();
+}
 
-  const people = ["You", "Friend"];
-  const paidBySelect = document.getElementById("paidBy");
-  people.forEach(p => paidBySelect.innerHTML += `<option>${p}</option>`);
+function addPerson() {
+  const n = newPerson.value.trim();
+  if (!n || people.includes(n)) return;
+  people.push(n);
+  newPerson.value = "";
+  saveAll();
+}
 
-  document.getElementById("login").onclick = () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider);
-  };
-
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      document.getElementById("user").innerText = "Signed in as " + user.email;
-      loadExpenses();
-    }
+function renderPeople() {
+  peopleList.innerHTML = "";
+  people.forEach(p => {
+    const li = document.createElement("li");
+    li.innerHTML = `${p} <button onclick="removePerson('${p}')">❌</button>`;
+    peopleList.appendChild(li);
   });
 
-  function addExpense() {
-    const expense = {
-      desc: desc.value,
-      amount: Number(amount.value),
-      paidBy: paidBy.value
-    };
-    db.collection("expenses").add(expense);
+  [paidBy, payFrom, payTo].forEach(sel => {
+    sel.innerHTML = "";
+    people.forEach(p => sel.add(new Option(p, p)));
+  });
+
+  participants.innerHTML = "";
+  people.forEach(p => {
+    participants.innerHTML += `<label><input type="checkbox" value="${p}" checked> ${p}</label>`;
+  });
+}
+
+function removePerson(p) {
+  people = people.filter(x => x !== p);
+  saveAll();
+}
+
+function saveRates() {
+  rates.USD = parseFloat(rateUSD.value);
+  rates.EUR = parseFloat(rateEUR.value);
+  saveAll();
+}
+
+function convertToGBP(amount, currency) {
+  if (currency === "GBP") return amount;
+  return amount * rates[currency];
+}
+
+function addExpense() {
+  const selected = [...participants.querySelectorAll("input:checked")].map(x => x.value);
+  if (!selected.length) return;
+
+  expenses.push({
+    desc: desc.value,
+    amount: convertToGBP(+amount.value, currency.value),
+    paidBy: paidBy.value,
+    participants: selected
+  });
+  desc.value = amount.value = "";
+  saveAll();
+}
+
+function addPayment() {
+  payments.push({
+    from: payFrom.value,
+    to: payTo.value,
+    amount: +payAmount.value
+  });
+  payAmount.value = "";
+  saveAll();
+}
+
+function calculateBalances() {
+  let bal = {};
+  people.forEach(p => bal[p] = 0);
+
+  expenses.forEach(e => {
+    const share = e.amount / e.participants.length;
+    e.participants.forEach(p => bal[p] -= share);
+    bal[e.paidBy] += e.amount;
+  });
+
+  payments.forEach(p => {
+    bal[p.from] += p.amount;
+    bal[p.to] -= p.amount;
+  });
+
+  return bal;
+}
+
+function renderBalances() {
+  balances.innerHTML = "";
+  const b = calculateBalances();
+  for (let p in b) {
+    balances.innerHTML += `<li>${p}: £${b[p].toFixed(2)}</li>`;
+  }
+}
+
+function renderSettlement() {
+  settlement.innerHTML = "";
+  const b = calculateBalances();
+  let debtors = [], creditors = [];
+
+  for (let p in b) {
+    if (b[p] < 0) debtors.push([p, -b[p]]);
+    if (b[p] > 0) creditors.push([p, b[p]]);
   }
 
-  function loadExpenses() {
-    db.collection("expenses").onSnapshot(snap => {
-      expenses.innerHTML = "";
-      snap.forEach(doc => {
-        const e = doc.data();
-        expenses.innerHTML += `<li>${e.paidBy} paid £${e.amount} for ${e.desc}</li>`;
-      });
-    });
-  }
-</script>
-
-</body>
-</html>
+  debtors.forEach(d => {
+    creditors.forEach(c => {
+      if (d[1] &&
